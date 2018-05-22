@@ -1,0 +1,11 @@
+* xwiki Writer for Pandoc
+
+Custom Writer for Pandoc that generates xwiki syntax.
+
+Very basic and incomplete at the moment.
+
+** Usage
+
+#+BEGIN_EXAMPLE
+$ pandoc -t xwiki.lua sample.org -o sample.xwiki
+#+END_EXAMPLE
