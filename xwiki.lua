@@ -126,7 +126,12 @@ function Strikeout(s)
 end
 
 function Link(s, src, tit, attr)
-  return "[[" .. s .. ">>" .. escape(src,true) .."]]"
+  if s == src then
+     return s
+  else
+     -- return "[[" .. s .. ">>" .. escape(src,true) .."]]"
+     return "{{html}}<a href='" .. escape(src,true) .. "'>" .. s .."</a>{{/html}}"
+  end
 end
 
 function Image(s, src, tit, attr)
@@ -226,8 +231,8 @@ function CodeBlock(s, attr)
     return '<img src="data:image/png;base64,' .. png .. '"/>'
   -- otherwise treat as code (one could pipe through a highlighter)
   else
-    return "<pre><code" .. attributes(attr) .. ">" .. escape(s) ..
-           "</code></pre>"
+    return "{{html}}" .. "<pre><code" .. attributes(attr) .. ">" .. escape(s) ..
+           "</code></pre>"  .. "{{/html}}"
   end
 end
 
@@ -242,9 +247,9 @@ end
 function OrderedList(items)
   local buffer = {}
   for _, item in pairs(items) do
-    table.insert(buffer, "* " .. item .. "")
+    table.insert(buffer, "1. " .. item .. "")
   end
-  return "<ol>\n" .. table.concat(buffer, "\n") .. "\n</ol>"
+  return "\n" .. table.concat(buffer, "\n") .. "\n"
 end
 
 function DefinitionList(items)
@@ -285,6 +290,7 @@ function Table(caption, aligns, widths, headers, rows)
   local function add(s)
     table.insert(buffer, s)
   end
+  add("{{html}}")
   add("<table>")
   if caption ~= "" then
     add("<caption>" .. caption .. "</caption>")
@@ -315,11 +321,14 @@ function Table(caption, aligns, widths, headers, rows)
     class = (class == "even" and "odd") or "even"
     add('<tr class="' .. class .. '">')
     for i,c in pairs(row) do
+      c = c:gsub("{{html}}", "")
+      c = c:gsub("{{/html}}", "")
       add('<td align="' .. html_align(aligns[i]) .. '">' .. c .. '</td>')
     end
     add('</tr>')
   end
   add('</table>')
+  add("{{/html}}")  
   return table.concat(buffer,'\n')
 end
 
