@@ -22,7 +22,7 @@
 -- syntax errors.
 
 -- Character escaping
--- I don't think we need any excaping.
+-- I don't think we need any escaping.
 local function escape(s, in_attribute)
   return s
 end
@@ -110,7 +110,8 @@ function Strong(s)
 end
 
 function Subscript(s)
-  return ",," .. s .. ",,"
+   -- return ",," .. s .. ",,"
+   return s
 end
 
 function Superscript(s)
@@ -126,17 +127,21 @@ function Strikeout(s)
 end
 
 function Link(s, src, tit, attr)
-  if s == src then
-     return s
-  else
-     -- return "[[" .. s .. ">>" .. escape(src,true) .."]]"
-     return "{{html}}<a href='" .. escape(src,true) .. "'>" .. s .."</a>{{/html}}"
+   if s == src then
+      return s
+   elseif s.sub(s, 1, 5) == "image" then
+      -- image link
+      return "[[[[" .. escape(s) .. "]]>>" .. escape(src,true) .."]]"
+   else
+     return "[[" .. s .. ">>" .. escape(src,true) .."]]"
+     -- return "{{html}}<a href='" .. escape(src,true) .. "'>" .. s .."</a>{{/html}}"
   end
 end
 
 function Image(s, src, tit, attr)
-  return "<img src='" .. escape(src,true) .. "' title='" ..
-         escape(tit,true) .. "'/>"
+   -- return "<img src='" .. escape(src,true) .. "' title='" ..
+   --       escape(tit,true) .. "'/>"
+   return src
 end
 
 function Code(s, attr)
@@ -231,8 +236,7 @@ function CodeBlock(s, attr)
     return '<img src="data:image/png;base64,' .. png .. '"/>'
   -- otherwise treat as code (one could pipe through a highlighter)
   else
-    return "{{html}}" .. "<pre><code" .. attributes(attr) .. ">" .. escape(s) ..
-           "</code></pre>"  .. "{{/html}}"
+    return "{{code}}" .. escape(s) .. "{{/code}}"
   end
 end
 
@@ -328,7 +332,7 @@ function Table(caption, aligns, widths, headers, rows)
     add('</tr>')
   end
   add('</table>')
-  add("{{/html}}")  
+  add("{{/html}}")
   return table.concat(buffer,'\n')
 end
 
@@ -354,4 +358,3 @@ meta.__index =
     return function() return "" end
   end
 setmetatable(_G, meta)
-
