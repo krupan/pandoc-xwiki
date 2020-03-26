@@ -22,7 +22,7 @@
 -- syntax errors.
 
 -- Character escaping
--- I don't think we need any excaping.
+-- I don't think we need any escaping.
 local function escape(s, in_attribute)
   return s
 end
@@ -54,10 +54,12 @@ end
 
 -- Table to store footnotes, so they can be included at the end.
 local notes = {}
+local bullets = {}
+local orders = {}
 
 -- Blocksep is used to separate block elements.
 function Blocksep()
-  return "\n\n"
+  return bullets[1] and "\n" or orders[1] and "\n" or "\n\n"
 end
 
 -- This function is called once for the whole document. Parameters:
@@ -110,7 +112,7 @@ function Strong(s)
 end
 
 function Subscript(s)
-  return ",," .. s .. ",,"
+   return s
 end
 
 function Superscript(s)
@@ -126,12 +128,18 @@ function Strikeout(s)
 end
 
 function Link(s, src, tit, attr)
-  return "[[" .. s .. ">>" .. escape(src,true) .."]]"
+   if s == src then
+      return s
+   elseif s.sub(s, 1, 5) == "image" then
+      -- image link
+      return "[[[[" .. escape(s) .. "]]>>" .. escape(src,true) .."]]"
+   else
+     return "[[" .. s .. ">>" .. escape(src,true) .."]]"
+  end
 end
 
 function Image(s, src, tit, attr)
-  return "<img src='" .. escape(src,true) .. "' title='" ..
-         escape(tit,true) .. "'/>"
+   return src
 end
 
 function Code(s, attr)
@@ -154,8 +162,6 @@ function Note(s)
   -- add a list item with the note to the note table.
   table.insert(notes, '1. ' .. s .. '')
   -- return the footnote reference, linked to the note.
-  -- return '<a id="fnref' .. num .. '" href="#fn' .. num ..
-  --           '"><sup>' .. num .. '</sup></a>'
   return '[[^^' .. num .. '^^>>||anchor="HFootnotes"]]'
 end
 
@@ -226,25 +232,28 @@ function CodeBlock(s, attr)
     return '<img src="data:image/png;base64,' .. png .. '"/>'
   -- otherwise treat as code (one could pipe through a highlighter)
   else
-    return "<pre><code" .. attributes(attr) .. ">" .. escape(s) ..
-           "</code></pre>"
+    return "{{code}}" .. escape(s) .. "{{/code}}"
   end
 end
 
-function BulletList(items)
+-- replacement for BulletList, returned via global metatable
+function BulletList_(items)
   local buffer = {}
   for _, item in pairs(items) do
-    table.insert(buffer, "* " .. item .. "")
+    table.insert(buffer, table.concat(bullets) .. ' ' .. item)
   end
-  return "" .. table.concat(buffer, "\n") .. ""
+  -- remove bullet inserted in metatable
+  table.remove(bullets)
+  return table.concat(buffer, '\n')
 end
 
-function OrderedList(items)
+function OrderedList_(items)
   local buffer = {}
   for _, item in pairs(items) do
-    table.insert(buffer, "* " .. item .. "")
+    table.insert(buffer, table.concat(orders) .. ". " .. item)
   end
-  return "<ol>\n" .. table.concat(buffer, "\n") .. "\n</ol>"
+  table.remove(orders)
+  return table.concat(buffer, "\n")
 end
 
 function DefinitionList(items)
@@ -285,6 +294,7 @@ function Table(caption, aligns, widths, headers, rows)
   local function add(s)
     table.insert(buffer, s)
   end
+  add("{{html}}")
   add("<table>")
   if caption ~= "" then
     add("<caption>" .. caption .. "</caption>")
@@ -315,11 +325,14 @@ function Table(caption, aligns, widths, headers, rows)
     class = (class == "even" and "odd") or "even"
     add('<tr class="' .. class .. '">')
     for i,c in pairs(row) do
+      c = c:gsub("{{html}}", "")
+      c = c:gsub("{{/html}}", "")
       add('<td align="' .. html_align(aligns[i]) .. '">' .. c .. '</td>')
     end
     add('</tr>')
   end
   add('</table>')
+  add("{{/html}}")
   return table.concat(buffer,'\n')
 end
 
@@ -341,8 +354,14 @@ end
 local meta = {}
 meta.__index =
   function(_, key)
+    if key == 'BulletList' then
+        table.insert(bullets, '*')
+        return BulletList_
+    elseif key == 'OrderedList' then
+        table.insert(orders, '1')
+        return OrderedList_
+    end
     io.stderr:write(string.format("WARNING: Undefined function '%s'\n",key))
     return function() return "" end
   end
 setmetatable(_G, meta)
-
