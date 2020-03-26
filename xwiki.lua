@@ -54,10 +54,13 @@ end
 
 -- Table to store footnotes, so they can be included at the end.
 local notes = {}
+local bullets = {}
+local orders = {}
 
 -- Blocksep is used to separate block elements.
 function Blocksep()
-  return "\n\n"
+  return bullets[1] and "\n" or orders[1] and "\n" or "\n\n"
+--  return "\n\n"
 end
 
 -- This function is called once for the whole document. Parameters:
@@ -240,20 +243,24 @@ function CodeBlock(s, attr)
   end
 end
 
-function BulletList(items)
+-- replacement for BulletList, returned via global metatable
+function BulletList_(items)
   local buffer = {}
   for _, item in pairs(items) do
-    table.insert(buffer, "* " .. item .. "")
+    table.insert(buffer, table.concat(bullets) .. ' ' .. item)
   end
-  return "" .. table.concat(buffer, "\n") .. ""
+  -- remove bullet inserted in metatable
+  table.remove(bullets)
+  return table.concat(buffer, '\n')
 end
 
-function OrderedList(items)
+function OrderedList_(items)
   local buffer = {}
   for _, item in pairs(items) do
-    table.insert(buffer, "1. " .. item .. "")
+    table.insert(buffer, table.concat(orders) .. ". " .. item)
   end
-  return "\n" .. table.concat(buffer, "\n") .. "\n"
+  table.remove(orders)
+  return table.concat(buffer, "\n")
 end
 
 function DefinitionList(items)
@@ -354,6 +361,13 @@ end
 local meta = {}
 meta.__index =
   function(_, key)
+    if key == 'BulletList' then
+        table.insert(bullets, '*')
+        return BulletList_
+    elseif key == 'OrderedList' then
+        table.insert(orders, '1')
+        return OrderedList_
+    end
     io.stderr:write(string.format("WARNING: Undefined function '%s'\n",key))
     return function() return "" end
   end
