@@ -60,7 +60,6 @@ local orders = {}
 -- Blocksep is used to separate block elements.
 function Blocksep()
   return bullets[1] and "\n" or orders[1] and "\n" or "\n\n"
---  return "\n\n"
 end
 
 -- This function is called once for the whole document. Parameters:
@@ -113,7 +112,6 @@ function Strong(s)
 end
 
 function Subscript(s)
-   -- return ",," .. s .. ",,"
    return s
 end
 
@@ -137,13 +135,10 @@ function Link(s, src, tit, attr)
       return "[[[[" .. escape(s) .. "]]>>" .. escape(src,true) .."]]"
    else
      return "[[" .. s .. ">>" .. escape(src,true) .."]]"
-     -- return "{{html}}<a href='" .. escape(src,true) .. "'>" .. s .."</a>{{/html}}"
   end
 end
 
 function Image(s, src, tit, attr)
-   -- return "<img src='" .. escape(src,true) .. "' title='" ..
-   --       escape(tit,true) .. "'/>"
    return src
 end
 
@@ -167,8 +162,6 @@ function Note(s)
   -- add a list item with the note to the note table.
   table.insert(notes, '1. ' .. s .. '')
   -- return the footnote reference, linked to the note.
-  -- return '<a id="fnref' .. num .. '" href="#fn' .. num ..
-  --           '"><sup>' .. num .. '</sup></a>'
   return '[[^^' .. num .. '^^>>||anchor="HFootnotes"]]'
 end
 
